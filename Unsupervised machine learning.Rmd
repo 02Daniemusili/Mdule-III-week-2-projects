@@ -1,0 +1,431 @@
+---
+title: "PROJECT II"
+author: "Daniel"
+date: "7/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+***project objectives***
+study the factors of various customers to make us on creating a model that clusters the datasets with respect to class revenue
+
+***metrics of success***
+creating a model unsupervised model to cluster our data with respect to class revenue
+
+
+***understanding the context***
+
+
+Kira Plastinina is a Russian brand that is sold through a defunct chain of retail stores in Russia, Ukraine, Kazakhstan, Belarus, China, Philippines, and Armenia. The brand’s Sales and Marketing team would like to understand their customer’s behavior from data that they have collected over the past year. More specifically, they would like to learn the characteristics of customer groups
+
+
+
+***Loading the dataset***
+
+```{r,echo=TRUE}
+#loading data in our environment
+customers  <-read.csv("http://bit.ly/EcommerceCustomersDataset")
+head(customers)
+```
+
+```{r,echo=TRUE}
+dim(customers)
+```
+
+```{r,echo=TRUE}
+# Viewing the structure of the dataset
+str(customers)
+```
+```{r,echo=TRUE}
+# Viewing the statistical summary of the dataset
+summary(customers) 
+```
+##Data cleaning
+
+
+***checking for the null values***
+
+```{r,echo=TRUE}
+#checking null values column wise
+colSums(is.na(customers))
+```
+
+
+
+
+```{r,echo=TRUE}
+#droping null values in our data
+customer1<-na.omit(customers)
+customer1
+```
+
+```{r}
+colSums(is.na(customer1))
+```
+
+
+```{r,echo=TRUE}
+#checking the presence of duplicated data
+customer1[duplicated(customer1),]
+
+```
+
+```{r,echo=TRUE}
+customer_df=customer1[!duplicated(customer1),]
+dim(customer_df)
+
+```
+
+***checking for outliers***
+
+```{r,echo=TRUE}
+boxplot(customer_df$Administrative,customer_df$Administrative_Duration,customer_df$Informational, col = "brown")
+```
+```{r,echo=TRUE}
+boxplot(customer_df$Informational_Duration,customer_df$ProductRelated,customer_df$BounceRates,customer_df$ExitRates,customer_df$PageValues, col = "brown")
+```
+
+
+***dealing with null values***
+
+```{r,echo=TRUE}
+outliers <- function(x) {
+
+  Q1 <- quantile(x, probs=.25)
+  Q3 <- quantile(x, probs=.75)
+  iqr = Q3-Q1
+
+ upper_limit = Q3 + (iqr*1.5)
+ lower_limit = Q1 - (iqr*1.5)
+
+ x > upper_limit | x < lower_limit
+}
+
+remove_outliers <- function(customer_df, cols = names(customer_df)) {
+  for (col in cols) {
+    customer_df <- customer_df[!outliers(customer_df[[col]]),]
+  }
+  customer_df
+}
+```
+
+```{r,echo=TRUE}
+dim(customer_df)
+```
+
+##Exploratory data analysis
+
+```{r,echo=TRUE}
+hist(customer_df$Administrative_Duration,col = "brown")
+```
+
+```{r,echo=TRUE}
+hist(customer_df$Administrative, col = "red")
+```
+
+```{r,echo=TRUE}
+hist(customer1$Informational,col="green")
+```
+```{r,echo=TRUE}
+hist(customer_df$PageValues,col = "red3")
+
+```
+
+```{r,echo=TRUE}
+hist(customer_df$ExitRates,col = "brown4")
+```
+
+```{r,echo=TRUE}
+hist(customer_df$TrafficType, col="purple3")
+```
+
+```{r,echo=TRUE}
+#frequency plot to show the information duration distribution
+hist(customer1$Informational_Duration)
+
+```
+
+
+
+
+***Bivariate Analysis***
+
+```{r,echo=TRUE}
+#scatter plot to show the relationship between Age and Daily.internet usage
+scatter.smooth(customer1$Administrative_Duration, customer1$Informational, col = "red")
+```
+
+```{r,echo=TRUE}
+scatter.smooth(customer_df$TrafficType,customer_df$OperatingSystems, col="red")
+```
+
+
+
+
+```{r}
+unique(customer_df$Weekend)
+```
+
+```{r,echo=TRUE}
+customer_df$Month<-factor(customer_df$Month,level=c("Feb","Mar","May","Oct","June","Jul","Aug","Nov","Sep","Dec"),label=c(2,3,5,10,6,7,8,11,9,12))
+```
+
+```{r,echo=TRUE}
+customer_df$VisitorType<-factor(customer_df$VisitorType,level=c("Returning_Visitor","New_Visitor","Other"),label=c(1,2,3))
+```
+
+```{r,echo=TRUE}
+customer_df$Weekend<-factor(customer_df$Weekend,level=c("FALSE","TRUE"),label=c(0,1))
+```
+
+```{r,echo=TRUE}
+customer_df$Revenue<-factor(customer_df$Revenue,level=c("FALSE","TRUE"),label=c(0,1))
+```
+
+```{r,echo=TRUE}
+#selecting numerical variables to check for presences of outliers
+customer_data<-customer_df[,c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18)]
+head(customer_data)
+```
+
+```{r,echo=TRUE}
+customer_data[,1:17]<-sapply(customer_data[,1:17],as.factor)
+customer_data[,1:17]<-sapply(customer_data[,1:17],as.numeric)
+str(customer_data)
+```
+
+
+
+
+```{r,echo=TRUE}
+#checking the correlation between columns using the pearson method
+res2 <-cor.test(customer_data$ProductRelated,customer_data$ProductRelated_Duration,  method = "pearson")
+res2
+
+```
+
+```{r,echo=TRUE}
+#checking the correlation between columns using the pearson method
+
+res2 <-cor.test(customer_data$Administrative,customer_data$Administrative_Duration,  method = "pearson")
+res2
+
+```
+
+```{r,echo=TRUE}
+#checking the correlation between columns using the pearson method
+
+res2 <-cor.test(customer_data$BounceRates,customer_data$ExitRates,  method = "pearson")
+res2
+
+```
+
+```{r,echo=TRUE}
+#plotting a correlatin plot show the relationship between the data points
+library(corrplot)
+
+mydata = cor(as.matrix(customer_data))
+mydata
+corrplot(mydata)
+
+```
+
+from the correlation plot it shows that there is a very low correlation between our dataset. The columns with high correlation are "productrelated duration" and "productrelated", "Exit_rates" and "bouncerates" with about  0.8
+
+```{r,echo=TRUE}
+#plotting heatmap to show correlation between our data
+mydata.rcorr = cor(as.matrix(customer_data))
+mydata.rcorr
+heatmap(mydata.rcorr, col = palette, symm = TRUE)
+```
+
+##Implenting the solution
+
+```{r}
+dim(customer_data)
+
+```
+***K means clustering***
+
+```{r}
+customer.new<- customer_data[, c(1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14,15,16)]
+customer.class<- customer_data[, "Revenue"]
+head(customer.new)
+```
+
+
+```{r}
+# Normalizing the dataset so that no particular attribute 
+#brings biased to our data
+# ---
+# 
+normalize <- function(x){
+  return ((x-min(x)) / (max(x)-min(x)))
+}
+
+customer.new$Administrative <- normalize(customer.new$Administrative)
+customer.new$Administrative_Duration<- normalize(customer.new$Administrative_Duration)
+customer.new$Informational<- normalize(customer.new$Informational)
+customer.new$Informational_Duration<- normalize(customer.new$Informational_Duration)
+customer.new$ProductRelated <- normalize(customer.new$ProductRelated)
+customer.new$ProductRelated_Duration<- normalize(customer.new$ProductRelated_Duration)
+customer.new$BounceRates<- normalize(customer.new$BounceRates)
+customer.new$ExitRates<- normalize(customer.new$ExitRates)
+customer.new$PageValues <- normalize(customer.new$PageValues)
+customer.new$SpecialDay<- normalize(customer.new$SpecialDay)
+customer.new$Month<- normalize(customer.new$Month)
+customer.new$OperatingSystems<- normalize(customer.new$OperatingSystems)
+customer.new$Browser<-normalize(customer.new$Browser)
+customer.new$Region<- normalize(customer.new$Region)
+customer.new$TrafficType<- normalize(customer.new$TrafficType)
+customer.new$Weekend<- normalize(customer.new$Weekend)
+head(customer.new)
+```
+
+
+
+***Gap Statistic***
+
+
+```{r,echo=TRUE}
+set.seed(123)
+
+customers_dataset <- kmeans(customer_data, centers = 5, nstart = 25)
+print(customers_dataset)
+```
+
+```{r,echo=TRUE}
+head(customers_dataset$cluster)
+```
+
+```{r,echo=TRUE}
+head(customers_dataset$centers)
+```
+
+```{r,echo=TRUE}
+head(customers_dataset$size)
+```
+
+
+
+```{r,echo=TRUE}
+# Visualizing the  clustering results
+
+# 
+par(mfrow = c(1,2), mar = c(5,4,2,2))
+
+#
+plot(customer_data[,1:17], col = customers_dataset$cluster)
+```
+
+
+
+```{r,echo=TRUE}
+# Verifying the results of clustering
+# ---
+# 
+par(mfrow = c(2,2), mar = c(5,4,1,1))
+
+# Plotting to see how different  have been distributed in clusters
+plot(customer.new[c(1,2)], col = customers_dataset$cluster)
+plot(customer.new[c(3,4)], col = customers_dataset$cluster)
+plot(customer.new[c(5,6)], col = customers_dataset$cluster)
+plot(customer.new[c(7,8)], col = customers_dataset$cluster)
+plot(customer.new[c(9,10)], col = customers_dataset$cluster)
+#ploting to see how different variables are distributed
+# ---
+#
+plot(customer.new[c(1,2)], col = customer.class)
+
+# Plotting to see how different columns are distributed in the clusters
+# ---
+# 
+plot(customer.new[c(3,4)], col = customers_dataset$cluster)
+plot(customer.new[c(3,4)], col = customer.class)
+```
+
+
+##Hirarchial clustering
+
+
+***scalling our data***
+```{r,echo=TRUE}
+#scaling our data to avoid biases
+head(scale(customer_data))
+```
+
+```{r}
+library(tidyverse)  # data manipulation
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering visualization
+library(dendextend)
+```
+
+
+```{r,echo=TRUE}
+df <- dist(customer_data, method = "euclidean")
+
+```
+
+```{r,echo=TRUE}
+cut_df <- hclust(df, method = "ward.D2" )
+
+```
+
+```{r,echo=TRUE}
+sub_grp <- cutree(cut_df, k = 5)
+
+# Number of members in each cluster
+table(sub_grp)
+```
+
+
+***pltting the dendagram***
+```{r,echo=TRUE}
+plot(cut_df, cex = 0.01)
+rect.hclust(cut_df, k = 5, border = 2:5)
+```
+
+
+***DBSCAN CLUSTERING
+
+
+```{r}
+library("dbscan")
+```
+
+
+```{r}
+kNNdistplot(customer_data, k = 5)
+abline(h=.5, col = "red", lty=2)
+```
+
+
+
+```{r}
+db<-dbscan(customer.new,eps=0.7,MinPts = 7)
+db
+
+```
+
+```{r}
+
+# We also plot our clusters as shown
+# ---
+# The dataset and cluster method of dbscan is used to plot the clusters.
+# 
+hullplot(customer.new,db$cluster)
+
+```
+
+## conclusion
+
+from these models we can conclude that  k means was the best for our clustering
+
+
